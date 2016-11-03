@@ -1,0 +1,64 @@
+x <- read.csv("LRS_CC.csv")
+
+#install package for summary stats
+#install.packages("dplyr")
+library("dplyr")
+
+#extract the columns we want
+x <- x[,c(7,15,17,24)]
+
+#Rename and correct the formatting
+names(x) <- c("E.Coli", "Date", "Location", "Flow")
+
+x$E.Coli <- as.numeric(x$E.Coli)
+x$Flow <- as.numeric(x$Flow)
+x$Date<- as.Date(x$Date, format="%m/%d/%Y")
+
+# Get % Flowing/flowing count
+x$Flowing <- ifelse(x$Flow==0, 0, 1)
+x$Flowing <- as.numeric(x$Flowing)
+
+#count for E.Coli and Flow
+#Result <- data.frame(x$Location,x$E.Coli)
+#Count_E.Coli <- by(x, x[, "Location"], nrow)
+
+#Get summary statistics
+
+y <- x %>% group_by(Location) %>% summarise_all(funs(min, median, max, sum))
+
+y$Count.EColi <- by(x, x[, "Location"], nrow)
+
+#reorder
+y <- y[c(1,3,11,2,6,10,4,8,12,17,18)]
+names(y) <- c("Location", "Start Date", "End Date", "E.Coli Min", "E.Coli Median", "E.Coli Max",
+              "Flow Min", "Flow Median", "Flow Max", "Flow Count", "E.Coli Count")
+
+y$PercentFlowing <- y$`Flow Count`/6
+
+#extract CSV
+#write.table(y, paste("LRS_CC_WQFlow_AllLocations.csv", sep=","),
+#            row.names=TRUE, col.names=TRUE, sep=",")
+######Change 5 to <10 and 200000 to >200000 in the CSV
+
+#replace 
+y$`E.Coli Min` <- ifelse(y$`E.Coli Min`==5,10,y$`E.Coli Min`)
+y$`E.Coli Median` <- ifelse(y$`E.Coli Median`==5,10,y$`E.Coli Median`)
+y$`E.Coli Max`<- ifelse(y$`E.Coli Max`==5,10,y$`E.Coli Max`)
+x$`E.Coli`<- ifelse(x$`E.Coli`==5,10,x$`E.Coli`)
+
+#Calculate log means and standard deviations
+x$logE.Coli <- log10(x$E.Coli)
+x$logFlow <- log10(x$Flow)
+
+#means and SD by Location
+y$MeanLogE.Coli <- by(x$logE.Coli, x[, "Location"], mean)
+y$MeanLogFlow <- by(x$logFlow, x[, "Location"], mean)
+
+y$SD_LogE.Coli <- by(x$logE.Coli, x[, "Location"], sd)
+y$SD_LogFlow <- by(x$logFlow, x[, "Location"], sd)
+
+y[is.na(y)] <- 0
+
+#extract CSV
+write.table(y, paste("ComptonCreek_WQFlow_AllLocations_MonteCarlo.csv", sep=","),
+            row.names=TRUE, col.names=TRUE, sep=",")
