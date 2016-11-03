@@ -1,0 +1,22 @@
+setwd("/.../Prism Weather Data All/")
+require(dplyr)
+require(raster)
+
+#This makes sure only .bil is read (not asc.bil, etc)
+
+filenames <- dir("/.../Prism Weather Data All/", pattern = "\\.bil$")
+
+z <- as.data.frame(matrix(NA)) 
+
+#loop through the data, and name each column the name of the date in 
+#the spreadsheet (according to Prism's naming convention, the date 
+#starts at character 24 and ends at character 29)
+
+for (file in filenames){
+  r <- raster(filenames)
+  test <- as.data.frame(r, na.rm=TRUE, row.names=TRUE, col.names=FALSE)
+  names(test)<- c(substring(file, 24, 29))
+  z <- cbind(z, test)
+}
+
+#then export the data.frame to CSV!
